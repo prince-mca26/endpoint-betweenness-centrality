@@ -5,7 +5,7 @@ Endpoint Betweenness Centrality (EPBC)
 Manual implementation, NetworkX validation, and evaluation
 on selected real-world network datasets.
 
-Authors: Ayush Mann & Prince Verma
+Authors: Prince Verma & Ayush Mann
 Course: Network Science
 University: University of Delhi
 """
@@ -16,6 +16,10 @@ from pathlib import Path
 import networkx as nx
 
 
+# ============================================================
+# 1. MANUAL EPBC IMPLEMENTATION
+# ============================================================
+
 def endpoint_betweenness_centrality(
     G,
     node,
@@ -23,34 +27,21 @@ def endpoint_betweenness_centrality(
     weight=None
 ):
     """
-    Calculate Endpoint Betweenness Centrality (EPBC) for one node.
+    Calculate Endpoint Betweenness Centrality (EPBC)
+    for one node.
 
     For every reachable source-target pair:
     - source and target receive a contribution of 1
-    - an intermediate node receives its fraction of shortest paths
+    - an intermediate node receives its fraction of
+      shortest paths containing that node
 
-    Undirected graphs use unordered pairs.
-    Directed graphs use ordered pairs.
-
-    Parameters
-    ----------
-    G : networkx.Graph
-        Input graph.
-    node : node
-        Node whose EPBC is calculated.
-    normalized : bool
-        Whether to normalize the result.
-    weight : str or None
-        Edge attribute used as shortest-path weight.
-
-    Returns
-    -------
-    float
-        EPBC score of the node.
+    Undirected graphs use unordered node pairs.
+    Directed graphs use ordered node pairs.
     """
 
     score = 0.0
 
+    # Generate source-target pairs
     if G.is_directed():
         node_pairs = itertools.permutations(G.nodes(), 2)
     else:
@@ -58,9 +49,11 @@ def endpoint_betweenness_centrality(
 
     for source, target in node_pairs:
 
+        # Ignore unreachable pairs
         if not nx.has_path(G, source, target):
             continue
 
+        # Find all shortest paths
         shortest_paths = list(
             nx.all_shortest_paths(
                 G,
@@ -70,9 +63,11 @@ def endpoint_betweenness_centrality(
             )
         )
 
+        # Endpoint contribution
         if node == source or node == target:
             score += 1.0
 
+        # Intermediate-node contribution
         else:
             paths_containing_node = sum(
                 node in path
@@ -84,6 +79,7 @@ def endpoint_betweenness_centrality(
                 len(shortest_paths)
             )
 
+    # Normalize the score
     if normalized:
         n = len(G)
 
@@ -95,11 +91,20 @@ def endpoint_betweenness_centrality(
     return score
 
 
-def endpoint_betweenness_centrality_builtin(G, weight=None):
-    """
-    Calculate endpoint-aware betweenness centrality using NetworkX.
+# ============================================================
+# 2. NETWORKX IMPLEMENTATION
+# ============================================================
 
-    NetworkX enables endpoint inclusion with endpoints=True.
+def endpoint_betweenness_centrality_builtin(
+    G,
+    weight=None
+):
+    """
+    Calculate endpoint-aware betweenness centrality
+    using NetworkX.
+
+    endpoints=True includes source and target nodes
+    in the betweenness calculation.
     """
 
     return nx.betweenness_centrality(
@@ -110,11 +115,20 @@ def endpoint_betweenness_centrality_builtin(G, weight=None):
     )
 
 
-def validate_implementation(G, weight=None, tolerance=1e-9):
-    """
-    Compare the manual EPBC implementation with NetworkX.
+# ============================================================
+# 3. MANUAL IMPLEMENTATION VALIDATION
+# ============================================================
 
-    Returns True when all node scores agree within tolerance.
+def validate_implementation(
+    G,
+    weight=None,
+    tolerance=1e-9
+):
+    """
+    Compare the manual EPBC implementation with
+    NetworkX for every node.
+
+    Returns True if all scores agree within tolerance.
     """
 
     builtin_scores = endpoint_betweenness_centrality_builtin(
@@ -125,7 +139,7 @@ def validate_implementation(G, weight=None, tolerance=1e-9):
     all_match = True
 
     print("\nValidation Results")
-    print("-" * 70)
+    print("-" * 75)
 
     for node in G.nodes():
 
@@ -138,7 +152,10 @@ def validate_implementation(G, weight=None, tolerance=1e-9):
 
         builtin_score = builtin_scores[node]
 
-        difference = abs(manual_score - builtin_score)
+        difference = abs(
+            manual_score - builtin_score
+        )
+
         matches = difference <= tolerance
 
         if not matches:
@@ -152,15 +169,25 @@ def validate_implementation(G, weight=None, tolerance=1e-9):
             f"{'MATCH' if matches else 'MISMATCH'}"
         )
 
-    print("-" * 70)
+    print("-" * 75)
 
     if all_match:
-        print("Validation successful: all scores match.")
+        print(
+            "Validation successful: "
+            "all manual and NetworkX scores match."
+        )
     else:
-        print("Validation failed: at least one score differs.")
+        print(
+            "Validation failed: "
+            "at least one score differs."
+        )
 
     return all_match
 
+
+# ============================================================
+# 4. TOP-N RESULTS
+# ============================================================
 
 def top_nodes(scores, k=5):
     """Return the top-k nodes according to EPBC score."""
@@ -187,10 +214,16 @@ def print_top_nodes(G, weight=None, k=5):
         top_nodes(scores, k),
         start=1
     ):
-        print(f"{rank}. Node {node}: {score:.6f}")
+        print(
+            f"{rank}. Node {node}: {score:.6f}"
+        )
 
     return scores
 
+
+# ============================================================
+# 5. GRAPH INFORMATION
+# ============================================================
 
 def print_graph_information(name, G):
     """Display basic information about a network."""
@@ -202,15 +235,29 @@ def print_graph_information(name, G):
     print(f"Nodes : {G.number_of_nodes()}")
     print(f"Edges : {G.number_of_edges()}")
 
-    graph_type = "Directed" if G.is_directed() else "Undirected"
-    weight_type = "Weighted" if nx.is_weighted(G) else "Unweighted"
+    graph_type = (
+        "Directed"
+        if G.is_directed()
+        else "Undirected"
+    )
+
+    weight_type = (
+        "Weighted"
+        if nx.is_weighted(G)
+        else "Unweighted"
+    )
 
     print(f"Type  : {graph_type} / {weight_type}")
 
 
+# ============================================================
+# 6. DEMONSTRATION GRAPH
+# ============================================================
+
 def create_demo_graph():
     """
-    Create the small graph used to demonstrate and validate EPBC.
+    Create the small graph used to demonstrate
+    and validate EPBC.
 
         A ----- B
         |       |
@@ -232,36 +279,37 @@ def create_demo_graph():
     return G
 
 
+# ============================================================
+# 7. MATRIX MARKET DATASET LOADER
+# ============================================================
+
 def load_mtx_graph(file_path):
     """
     Load a Network Repository Matrix Market (.mtx) graph.
 
-    The Matrix Market header is used to determine:
+    Matrix Market header determines:
 
     - symmetric -> undirected graph
     - general   -> directed graph
     - pattern   -> unweighted graph
-    - real/integer -> weighted graph
+    - integer/real -> weighted graph
 
-    Network Repository uses Matrix Market files for graph data,
-    with the first non-comment line giving the matrix dimensions
-    and number of entries.
+    Network Repository datasets use 1-based node IDs,
+    which are preserved here.
     """
 
     with open(file_path, "r") as file:
 
-        # Read the Matrix Market header
+        # Read Matrix Market header
         header = file.readline().strip()
 
         if not header.startswith("%%MatrixMarket"):
             raise ValueError(
-                f"{file_path} is not a valid Matrix Market file."
+                f"{file_path} is not a valid "
+                "Matrix Market file."
             )
 
         header_parts = header.split()
-
-        # Example:
-        # %%MatrixMarket matrix coordinate pattern symmetric
 
         value_type = header_parts[3].lower()
         symmetry = header_parts[4].lower()
@@ -273,24 +321,24 @@ def load_mtx_graph(file_path):
             line = file.readline()
 
         # Matrix dimensions:
-        # rows columns number_of_entries
+        # rows, columns, number of entries
         rows, columns, entries = map(
             int,
             line.split()[:3]
         )
 
-        # Determine graph type
+        # Symmetric matrix = undirected graph
         if symmetry == "symmetric":
             G = nx.Graph()
         else:
             G = nx.DiGraph()
 
-        # Add all nodes.
-        #
-        # Matrix Market normally uses 1-based indices.
-        # We preserve those node numbers in the graph.
-        G.add_nodes_from(range(1, rows + 1))
+        # Matrix Market uses 1-based node numbering
+        G.add_nodes_from(
+            range(1, rows + 1)
+        )
 
+        # Pattern matrices are unweighted
         weighted = value_type != "pattern"
 
         for _ in range(entries):
@@ -306,14 +354,17 @@ def load_mtx_graph(file_path):
             target = int(parts[1])
 
             if weighted:
-                weight = float(parts[2])
+
+                value = float(parts[2])
 
                 G.add_edge(
                     source,
                     target,
-                    weight=weight
+                    weight=value
                 )
+
             else:
+
                 G.add_edge(
                     source,
                     target
@@ -321,6 +372,10 @@ def load_mtx_graph(file_path):
 
         return G
 
+
+# ============================================================
+# 8. NETWORK EVALUATION
+# ============================================================
 
 def evaluate_network(
     name,
@@ -331,13 +386,17 @@ def evaluate_network(
     """
     Evaluate a network using NetworkX EPBC.
 
-    Set validate=True when an independent comparison with
-    the manual implementation is required.
+    If validate=True, the manual implementation is
+    independently compared with NetworkX.
     """
 
-    print_graph_information(name, G)
+    print_graph_information(
+        name,
+        G
+    )
 
     if validate:
+
         validate_implementation(
             G,
             weight=weight
@@ -349,6 +408,10 @@ def evaluate_network(
         k=5
     )
 
+
+# ============================================================
+# 9. MAIN PROGRAM
+# ============================================================
 
 def main():
 
@@ -383,13 +446,13 @@ def main():
         "Karate Club",
         karate,
         weight=None,
-        validate=False
+        validate=True
     )
 
     # --------------------------------------------------------
     # 3. Network Repository datasets
     #
-    # Place the following files inside data/:
+    # Required files:
     #
     # data/dolphins.mtx
     # data/football.mtx
@@ -404,7 +467,9 @@ def main():
 
     print("\n[3] Dolphins Network")
 
-    dolphins_file = data_dir / "dolphins.mtx"
+    dolphins_file = (
+        data_dir / "dolphins.mtx"
+    )
 
     if dolphins_file.exists():
 
@@ -432,7 +497,9 @@ def main():
 
     print("\n[4] Football Network")
 
-    football_file = data_dir / "football.mtx"
+    football_file = (
+        data_dir / "football.mtx"
+    )
 
     if football_file.exists():
 
@@ -460,7 +527,9 @@ def main():
 
     print("\n[5] PolBooks Network")
 
-    polbooks_file = data_dir / "polbooks.mtx"
+    polbooks_file = (
+        data_dir / "polbooks.mtx"
+    )
 
     if polbooks_file.exists():
 
