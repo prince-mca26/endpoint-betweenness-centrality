@@ -30,20 +30,17 @@ The Network Repository datasets are stored in the `data/` directory in Matrix Ma
 
 ## Project Structure
 
-endpoint-betweenness-centrality/
-│
-├── README.md
-├── endpoint_betweenness.py
-├── requirements.txt
-│
-├── data/
-│   ├── dolphins.mtx
-│   ├── football.mtx
-│   └── polbooks.mtx
-│
-└── .github/
-    └── workflows/
-        └── test.yml
+**endpoint-betweenness-centrality**
+- README.md
+- endpoint_betweenness.py
+- requirements.txt
+- data/
+  - dolphins.mtx
+  - football.mtx
+  - polbooks.mtx
+- .github/
+  - workflows/
+    - test.yml
 
 ## Implementation
 
