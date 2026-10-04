@@ -72,6 +72,7 @@ def endpoint_betweenness_centrality(
 
         if node == source or node == target:
             score += 1.0
+
         else:
             paths_containing_node = sum(
                 node in path
@@ -231,27 +232,102 @@ def create_demo_graph():
     return G
 
 
-def load_gml_graph(file_path):
-    """Load a graph stored in GML format."""
-
-    return nx.read_gml(file_path)
-
-
-def load_pajek_graph(file_path):
+def load_mtx_graph(file_path):
     """
-    Load a graph stored in Pajek format and convert it to
-    a simple Graph or DiGraph.
+    Load a Network Repository Matrix Market (.mtx) graph.
+
+    The Matrix Market header is used to determine:
+
+    - symmetric -> undirected graph
+    - general   -> directed graph
+    - pattern   -> unweighted graph
+    - real/integer -> weighted graph
+
+    Network Repository uses Matrix Market files for graph data,
+    with the first non-comment line giving the matrix dimensions
+    and number of entries.
     """
 
-    G = nx.read_pajek(file_path)
+    with open(file_path, "r") as file:
 
-    if G.is_directed():
-        return nx.DiGraph(G)
+        # Read the Matrix Market header
+        header = file.readline().strip()
 
-    return nx.Graph(G)
+        if not header.startswith("%%MatrixMarket"):
+            raise ValueError(
+                f"{file_path} is not a valid Matrix Market file."
+            )
+
+        header_parts = header.split()
+
+        # Example:
+        # %%MatrixMarket matrix coordinate pattern symmetric
+
+        value_type = header_parts[3].lower()
+        symmetry = header_parts[4].lower()
+
+        # Skip comment lines
+        line = file.readline()
+
+        while line.startswith("%"):
+            line = file.readline()
+
+        # Matrix dimensions:
+        # rows columns number_of_entries
+        rows, columns, entries = map(
+            int,
+            line.split()[:3]
+        )
+
+        # Determine graph type
+        if symmetry == "symmetric":
+            G = nx.Graph()
+        else:
+            G = nx.DiGraph()
+
+        # Add all nodes.
+        #
+        # Matrix Market normally uses 1-based indices.
+        # We preserve those node numbers in the graph.
+        G.add_nodes_from(range(1, rows + 1))
+
+        weighted = value_type != "pattern"
+
+        for _ in range(entries):
+
+            line = file.readline().strip()
+
+            if not line:
+                continue
+
+            parts = line.split()
+
+            source = int(parts[0])
+            target = int(parts[1])
+
+            if weighted:
+                weight = float(parts[2])
+
+                G.add_edge(
+                    source,
+                    target,
+                    weight=weight
+                )
+            else:
+                G.add_edge(
+                    source,
+                    target
+                )
+
+        return G
 
 
-def evaluate_network(name, G, weight=None, validate=False):
+def evaluate_network(
+    name,
+    G,
+    weight=None,
+    validate=False
+):
     """
     Evaluate a network using NetworkX EPBC.
 
@@ -315,18 +391,26 @@ def main():
     #
     # Place the following files inside data/:
     #
-    # data/dolphins.gml
-    # data/football.net
-    # data/polbooks.gml
+    # data/dolphins.mtx
+    # data/football.mtx
+    # data/polbooks.mtx
     # --------------------------------------------------------
 
     data_dir = Path("data")
 
+    # --------------------------------------------------------
     # Dolphins
-    dolphins_file = data_dir / "dolphins.gml"
+    # --------------------------------------------------------
+
+    print("\n[3] Dolphins Network")
+
+    dolphins_file = data_dir / "dolphins.mtx"
 
     if dolphins_file.exists():
-        dolphins = load_gml_graph(dolphins_file)
+
+        dolphins = load_mtx_graph(
+            dolphins_file
+        )
 
         evaluate_network(
             "Dolphins",
@@ -334,17 +418,27 @@ def main():
             weight=None,
             validate=False
         )
+
     else:
+
         print(
             "\nDolphins dataset not found. "
-            "Place dolphins.gml inside data/."
+            "Place dolphins.mtx inside data/."
         )
 
+    # --------------------------------------------------------
     # Football
-    football_file = data_dir / "football.net"
+    # --------------------------------------------------------
+
+    print("\n[4] Football Network")
+
+    football_file = data_dir / "football.mtx"
 
     if football_file.exists():
-        football = load_pajek_graph(football_file)
+
+        football = load_mtx_graph(
+            football_file
+        )
 
         evaluate_network(
             "Football",
@@ -352,17 +446,27 @@ def main():
             weight="weight",
             validate=False
         )
+
     else:
+
         print(
             "\nFootball dataset not found. "
-            "Place football.net inside data/."
+            "Place football.mtx inside data/."
         )
 
+    # --------------------------------------------------------
     # PolBooks
-    polbooks_file = data_dir / "polbooks.gml"
+    # --------------------------------------------------------
+
+    print("\n[5] PolBooks Network")
+
+    polbooks_file = data_dir / "polbooks.mtx"
 
     if polbooks_file.exists():
-        polbooks = load_gml_graph(polbooks_file)
+
+        polbooks = load_mtx_graph(
+            polbooks_file
+        )
 
         evaluate_network(
             "PolBooks",
@@ -370,10 +474,12 @@ def main():
             weight=None,
             validate=False
         )
+
     else:
+
         print(
             "\nPolBooks dataset not found. "
-            "Place polbooks.gml inside data/."
+            "Place polbooks.mtx inside data/."
         )
 
 
